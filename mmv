@@ -1,0 +1,40 @@
+#! /bin/bash
+
+## mmv (Multiple MoVe) copyright 2022 Joe Koop
+## Redistributable under the MIT license <https://opensource.org/licenses/MIT>
+## Submit issues and pull requests to <https://github.com/jkoop/mmv>
+
+# $$ is our pid
+FILE=/tmp/mmv/$$
+mkdir -p /tmp/mmv
+
+if [ -f $FILE ]; then
+	echo 'Warning: Our temporary file already exists'
+	rm -i $FILE
+fi
+
+# write our list of files to the temporary file
+for i in "$@"; do
+	printf "%s\n" "$i" >> $FILE
+done
+
+# calls your favourite editor
+editor $FILE
+
+lineNumber=1
+
+# for each line of the temporary file
+while IFS='' read -r LINE || [ -n "${LINE}" ]; do
+	# move the file, iff it changed
+	# prefixing an "a" prevents an empty line from breaking if
+	# ${!var} will return the value of the variable whose name is the value of $var
+	# bash reserves $1 for the script's first argument, $2 for it's second, etc.
+	if [ "a$LINE" != "a${!lineNumber}" ]; then
+		mv -i -- "${!lineNumber}" "$LINE"
+	fi
+
+	# increment $lineNumber
+	let "lineNumber+=1"
+done < $FILE
+
+rm $FILE
